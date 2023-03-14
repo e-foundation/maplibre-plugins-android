@@ -8,6 +8,8 @@ import android.view.View;
 import android.widget.Toast;
 import com.mapbox.geojson.LineString;
 import com.mapbox.geojson.Point;
+import com.mapbox.mapboxsdk.Mapbox;
+import com.mapbox.mapboxsdk.WellKnownTileServer;
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.maps.MapView;
@@ -15,6 +17,7 @@ import com.mapbox.mapboxsdk.maps.Style;
 import com.mapbox.mapboxsdk.plugins.annotation.Line;
 import com.mapbox.mapboxsdk.plugins.annotation.LineManager;
 import com.mapbox.mapboxsdk.plugins.annotation.LineOptions;
+import com.mapbox.mapboxsdk.plugins.testapp.BuildConfig;
 import com.mapbox.mapboxsdk.plugins.testapp.R;
 import com.mapbox.mapboxsdk.plugins.testapp.Utils;
 import com.mapbox.mapboxsdk.utils.ColorUtils;
@@ -44,6 +47,8 @@ public class LineChangeActivity extends AppCompatActivity {
   private static final float PARTIAL_ALPHA = 0.5f;
   private static final float NO_ALPHA = 0.0f;
 
+  private static final String PATTERN = "line-pattern";
+
   private List<Line> lines;
 
   private LineManager lineManager;
@@ -53,12 +58,13 @@ public class LineChangeActivity extends AppCompatActivity {
   private boolean visible = true;
   private boolean width = true;
   private boolean color = true;
+  private boolean pattern = false;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_annotation);
-
+    Mapbox.getInstance(this, BuildConfig.MAPTILER_API_KEY, WellKnownTileServer.MapTiler);
     mapView = findViewById(R.id.mapView);
     mapView.onCreate(savedInstanceState);
     mapView.getMapAsync(mapboxMap -> {
@@ -68,28 +74,31 @@ public class LineChangeActivity extends AppCompatActivity {
           4)
       );
 
-      mapboxMap.setStyle(new Style.Builder().fromUri(Style.getPredefinedStyle("Streets")), style -> {
-        findViewById(R.id.fabStyles).setOnClickListener(v -> mapboxMap.setStyle(Utils.INSTANCE.getNextStyle()));
+      mapboxMap.setStyle(new Style.Builder()
+          .fromUri(Style.getPredefinedStyle("Streets"))
+          .withImage(PATTERN, getDrawable(R.drawable.line_pattern_dashed)),
+        style -> {
+          findViewById(R.id.fabStyles).setOnClickListener(v -> mapboxMap.setStyle(Utils.INSTANCE.getNextStyle()));
 
-        lineManager = new LineManager(mapView, mapboxMap, style);
-        lines = lineManager.create(getAllPolylines());
-        lineManager.addClickListener(line -> {
-          Toast.makeText(
+          lineManager = new LineManager(mapView, mapboxMap, style);
+          lines = lineManager.create(getAllPolylines());
+          lineManager.addClickListener(line -> {
+            Toast.makeText(
               LineChangeActivity.this,
               "Clicked: " + line.getId(),
               Toast.LENGTH_SHORT).show();
-          return false;
-        });
+            return false;
+          });
 
-        LineManager dottedLineManger = new LineManager(mapView, mapboxMap, style);
-        dottedLineManger.create(new LineOptions()
-          .withLinePattern("airfield-11")
-          .withLineWidth(5.0f)
-          .withGeometry(LineString.fromLngLats(new ArrayList<Point>() {{
-            add(Point.fromLngLat(9.997167, 53.547476));
-            add(Point.fromLngLat(12.587986, 55.675313));
-          }})));
-      });
+          LineManager dottedLineManger = new LineManager(mapView, mapboxMap, style);
+          dottedLineManger.create(new LineOptions()
+            .withLinePattern("airfield-11")
+            .withLineWidth(5.0f)
+            .withGeometry(LineString.fromLngLats(new ArrayList<Point>() {{
+              add(Point.fromLngLat(9.997167, 53.547476));
+              add(Point.fromLngLat(12.587986, 55.675313));
+            }})));
+        });
     });
 
     View fab = findViewById(R.id.fabStyles);
@@ -219,6 +228,12 @@ public class LineChangeActivity extends AppCompatActivity {
         visible = !visible;
         for (Line p : lines) {
           p.setLineOpacity(visible ? (fullAlpha ? FULL_ALPHA : PARTIAL_ALPHA) : NO_ALPHA);
+        }
+        break;
+      case R.id.action_id_pattern:
+        pattern = !pattern;
+        for (Line p : lines) {
+          p.setLinePattern(pattern ? PATTERN : null);
         }
         break;
       default:

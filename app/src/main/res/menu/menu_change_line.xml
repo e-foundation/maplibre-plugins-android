@@ -22,4 +22,8 @@
             android:id="@+id/action_id_visible"
             android:title="Change visibility"
             mapbox:showAsAction="never" />
+    <item
+        android:id="@+id/action_id_pattern"
+        android:title="Toggle pattern"
+        mapbox:showAsAction="never" />
 </menu>
